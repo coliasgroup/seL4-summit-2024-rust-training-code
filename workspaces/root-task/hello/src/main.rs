@@ -7,13 +7,16 @@
 #![no_std]
 #![no_main]
 
-use sel4_root_task::root_task;
+use sel4_root_task::{root_task, panicking};
 
-#[root_task]
+#[root_task(heap_size = 64 * 1024)]
 fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
     sel4::debug_println!("Hello, World!");
 
-    panic!("uh oh");
+    let r = panicking::catch_unwind(|| {
+        panic!("uh oh");
+    });
+    assert!(r.is_err());
 
     sel4::debug_println!("TEST_PASS");
 
