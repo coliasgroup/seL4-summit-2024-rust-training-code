@@ -12,6 +12,12 @@ class Simulation:
     def __init__(self, child):
         self.child = child
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.flush_read()
+
     @classmethod
     def from_args(cls):
         parser = argparse.ArgumentParser()
