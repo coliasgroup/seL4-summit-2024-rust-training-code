@@ -5,8 +5,8 @@
 //
 
 {
-    "name": "sel4-rust-tutorial-root-task",
-    "image": "sel4-rust-tutorial",
+    "name": "sel4-rust-training-root-task",
+    "image": "sel4-rust-training",
 
     "customizations": {
         "vscode": {
