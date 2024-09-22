@@ -5,8 +5,8 @@
 //
 
 {
-    "name": "sel4-rust-tutorial-microkit",
-    "image": "sel4-rust-tutorial",
+    "name": "sel4-rust-training-microkit",
+    "image": "sel4-rust-training",
 
     "customizations": {
         "vscode": {
