@@ -4,7 +4,9 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-ROOT ?= ..
+code_root := ..
+
+ROOT ?= $(code_root)
 CMD ?= false
 
 work_root := $(ROOT)
@@ -20,7 +22,7 @@ mount_arg := --mount type=bind,src=$(abspath $(work_root)),dst=/work
 uid := $(shell id -u)
 gid := $(shell id -g)
 
-rustup_channel = $(shell sed -nr 's,channel = "(.*)",\1,p' $(work_root)/rust-toolchain.toml)
+rustup_channel = $(shell sed -nr 's,channel = "(.*)",\1,p' $(code_root)/rust-toolchain.toml)
 
 .PHONY: none
 none:
