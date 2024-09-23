@@ -21,8 +21,8 @@ examples := \
     root-task/serial-device \
     root-task/spawn-task \
     root-task/spawn-thread \
-    microkit/banscii \
-    microkit/hello
+    microkit/hello \
+    microkit/banscii
 
 .PHONY: clean-each-example test-each-example
 clean-each-example test-each-example:
