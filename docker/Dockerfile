@@ -173,4 +173,10 @@ ENV PATH=/home/x/.cargo/bin:$PATH
 
 ENV SHELL=/bin/bash
 
+# TODO HACK
+RUN set -eu; \
+    f=~/.gitconfig; \
+    echo '[safe]' > $f; \
+    echo 'directory = /work/code' >> $f;
+
 WORKDIR /work
