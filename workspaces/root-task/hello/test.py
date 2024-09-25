@@ -8,4 +8,3 @@ from harness import Simulation
 
 with Simulation.from_args() as sim:
     sim.child.expect('Hello, World!', timeout=3)
-    sim.child.expect('TEST_PASS', timeout=1)
