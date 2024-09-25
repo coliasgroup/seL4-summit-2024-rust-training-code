@@ -11,7 +11,7 @@ child_crate := $(build_dir)/$(child_crate_name).elf
 
 $(child_crate): $(child_crate).intermediate
 
-.INTERMEDIATE: $(child_crate).intermediate
+.PHONY: $(child_crate).intermediate
 $(child_crate).intermediate:
 	cargo build \
 		$(common_cargo_args) \
@@ -22,7 +22,7 @@ crate := $(build_dir)/$(crate_name).elf
 
 $(crate): $(crate).intermediate
 
-.INTERMEDIATE: $(crate).intermediate
+.PHONY: $(crate).intermediate
 $(crate).intermediate: $(child_crate)
 	CHILD_ELF=$(abspath $(child_crate)) \
 		cargo build \
