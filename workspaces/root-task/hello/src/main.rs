@@ -11,7 +11,13 @@ extern crate alloc;
 
 use alloc::vec;
 
+use sel4_logging::{log::info, LevelFilter, Logger, LoggerBuilder};
 use sel4_root_task::{panicking, root_task};
+
+static LOGGER: Logger = LoggerBuilder::const_default()
+    .level_filter(LevelFilter::Info)
+    .write(|s| sel4::debug_print!("{}", s))
+    .build();
 
 #[root_task(stack_size = 256 * 1024, heap_size = 64 * 1024)]
 fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
@@ -31,6 +37,10 @@ fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
     cause_stack_overflow();
 
     use_heap();
+
+    LOGGER.set().unwrap();
+
+    info!("logging info");
 
     sel4::debug_println!("TEST_PASS");
 
