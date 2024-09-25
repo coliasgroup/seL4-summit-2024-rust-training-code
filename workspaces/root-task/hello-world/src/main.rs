@@ -13,6 +13,12 @@ use sel4_root_task::{panicking, root_task};
 fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
     sel4::debug_println!("Hello, World!");
 
+    panicking::set_hook(&|info| {
+        sel4::debug_println!("!!!!");
+        sel4::debug_println!("{info}");
+        sel4::debug_println!("????");
+    });
+
     let result = panicking::catch_unwind(|| {
         panic!("uh oh");
     });
