@@ -7,9 +7,13 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
+use alloc::vec;
+
 use sel4_root_task::{panicking, root_task};
 
-#[root_task(stack_size = 256 * 1024)]
+#[root_task(stack_size = 256 * 1024, heap_size = 64 * 1024)]
 fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
     sel4::debug_println!("Hello, World!");
 
@@ -25,6 +29,8 @@ fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
     assert!(result.is_err());
 
     cause_stack_overflow();
+
+    use_heap();
 
     sel4::debug_println!("TEST_PASS");
 
@@ -46,4 +52,10 @@ fn cause_stack_overflow() {
 
     sel4::debug_println!("");
     sel4::debug_println!("did not cause stack overflow");
+}
+
+fn use_heap() {
+    let mut v = vec![43, 612, 620, 12, 3, 6];
+    v.sort();
+    assert!(v.is_sorted());
 }
