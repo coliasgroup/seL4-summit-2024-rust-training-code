@@ -12,7 +12,7 @@ define build_crate
 
 $(crate): $(crate).intermediate
 
-.PHONY: $(crate).intermediate
+.INTERMEDIATE: $(crate).intermediate
 $(crate).intermediate:
 	cargo build \
 		$(common_cargo_args) \
