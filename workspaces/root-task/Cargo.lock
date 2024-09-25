@@ -170,6 +170,7 @@ name = "hello"
 version = "0.1.0"
 dependencies = [
  "sel4",
+ "sel4-logging",
  "sel4-root-task",
 ]
 
@@ -532,6 +533,15 @@ version = "0.1.0"
 source = "git+https://github.com/seL4/rust-sel4#9b82998f9daf60c3125028da2d01b78b81b9ae7c"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "sel4-logging"
+version = "0.1.0"
+source = "git+https://github.com/seL4/rust-sel4#9b82998f9daf60c3125028da2d01b78b81b9ae7c"
+dependencies = [
+ "lock_api",
+ "log",
 ]
 
 [[package]]
