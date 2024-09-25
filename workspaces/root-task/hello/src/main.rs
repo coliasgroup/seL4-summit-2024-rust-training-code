@@ -24,7 +24,26 @@ fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
     });
     assert!(result.is_err());
 
+    cause_stack_overflow();
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
+}
+
+fn cause_stack_overflow() {
+    fn f(i: i32) {
+        sel4::debug_print!(".");
+        let _arr = [0u8; 1024];
+        if i > 0 {
+            f(i - 1);
+        }
+    }
+
+    sel4::debug_println!("trying to caues stack overflow");
+
+    f(150);
+
+    sel4::debug_println!("");
+    sel4::debug_println!("did not cause stack overflow");
 }
