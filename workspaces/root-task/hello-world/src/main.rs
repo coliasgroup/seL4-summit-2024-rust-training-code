@@ -9,7 +9,7 @@
 
 use sel4_root_task::{panicking, root_task};
 
-#[root_task]
+#[root_task(stack_size = 256 * 1024)]
 fn main(_bootinfo: &sel4::BootInfoPtr) -> ! {
     sel4::debug_println!("Hello, World!");
 
