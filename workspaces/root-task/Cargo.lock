@@ -543,15 +543,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sel4-logging"
-version = "0.1.0"
-source = "git+https://github.com/seL4/rust-sel4#a43d66eb7fa93ab255e32b527f0e173c85008699"
-dependencies = [
- "lock_api",
- "log",
-]
-
-[[package]]
 name = "sel4-panicking"
 version = "0.1.0"
 source = "git+https://github.com/seL4/rust-sel4#a43d66eb7fa93ab255e32b527f0e173c85008699"
