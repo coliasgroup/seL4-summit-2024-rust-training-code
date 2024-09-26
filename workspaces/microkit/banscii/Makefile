@@ -10,10 +10,7 @@ crate = $(build_dir)/$(1).elf
 
 define build_crate
 
-$(crate): $(crate).intermediate
-
-.INTERMEDIATE: $(crate).intermediate
-$(crate).intermediate:
+$(crate): FORCE
 	cargo build \
 		$(common_cargo_args) \
 		--release \

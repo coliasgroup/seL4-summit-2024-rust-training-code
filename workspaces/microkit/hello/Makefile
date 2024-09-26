@@ -9,10 +9,7 @@ include ../../../mk/microkit.mk
 crate_name := microkit-hello
 crate := $(build_dir)/$(crate_name).elf
 
-$(crate): $(crate).intermediate
-
-.INTERMEDIATE: $(crate).intermediate
-$(crate).intermediate:
+$(crate): FORCE
 	cargo build \
 		$(common_cargo_args) \
 		-p $(crate_name)

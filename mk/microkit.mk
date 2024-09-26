@@ -58,3 +58,5 @@ test: test.py simulation-context
 common_cargo_args := \
 	--target-dir $(build_dir)/target \
 	--artifact-dir $(build_dir)
+
+FORCE:
