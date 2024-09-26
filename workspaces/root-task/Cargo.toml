@@ -10,6 +10,7 @@ resolver = "2"
 
 members = [
     "hello",
+    "kernel-objects",
     "serial-device",
     "spawn-thread",
     "spawn-task",
