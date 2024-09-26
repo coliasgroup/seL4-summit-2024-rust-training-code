@@ -52,6 +52,12 @@ fmt-check:
 	$(foreach workspace,$(workspaces), \
 		(cd workspaces/$(workspace) && cargo fmt --check);)
 
+.PHONY: update
+update:
+	set -eu; \
+	$(foreach workspace,$(workspaces), \
+		(cd workspaces/$(workspace) && cargo update);)
+
 rustdoc_dir := $(build_dir)/rustdoc
 
 .PHONY: rustdoc
