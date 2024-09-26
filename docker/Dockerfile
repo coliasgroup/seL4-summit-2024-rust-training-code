@@ -30,6 +30,7 @@ RUN apt-get update -q && \
         # for hacking
         bash-completion \
         man \
+        less \
         sudo \
     && \
     # install these without --no-install-recommends
