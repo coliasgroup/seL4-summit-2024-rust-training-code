@@ -27,9 +27,9 @@ const CHILD_ELF_CONTENTS: &[u8] = include_bytes!(env!("CHILD_ELF"));
 const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
 
 #[repr(C, align(4096))]
-struct PagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
+struct PagePlaceholder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
 
-static mut FILL_PAGE_RESERVATION: PagePlaceHolder = PagePlaceHolder([0; GRANULE_SIZE]);
+static mut FILL_PAGE_RESERVATION: PagePlaceholder = PagePlaceholder([0; GRANULE_SIZE]);
 
 #[root_task(heap_size = 1024 * 64)]
 fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
