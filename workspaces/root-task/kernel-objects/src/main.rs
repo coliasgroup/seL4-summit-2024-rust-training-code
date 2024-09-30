@@ -24,6 +24,28 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
     let largest_kernel_ut = find_largest_kernel_untyped(bootinfo);
     sel4::debug_println!("largest kernel untyped: {largest_kernel_ut:?}");
 
+    let cnode = sel4::init_thread::slot::CNODE.cap();
+
+    let mut empty_slots = bootinfo
+        .empty()
+        .range()
+        .map(sel4::init_thread::Slot::from_index);
+    let notification_slot = empty_slots.next().unwrap();
+
+    sel4::debug_println!("allocating notification");
+    largest_kernel_ut
+        .untyped_retype(
+            &sel4::ObjectBlueprint::Notification,
+            &cnode.absolute_cptr_for_self(),
+            notification_slot.index(),
+            1,
+        )
+        .unwrap();
+
+    let notification = notification_slot
+        .downcast::<sel4::cap_type::Notification>()
+        .cap();
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
