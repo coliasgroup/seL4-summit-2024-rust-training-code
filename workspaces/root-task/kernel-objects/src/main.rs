@@ -52,6 +52,33 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
     sel4::debug_println!("waiting on notification");
     notification.wait();
 
+    let badge = 0x1337;
+
+    let badged_notification_slot = empty_slots.next().unwrap();
+
+    sel4::debug_println!("minting badged capability for notification");
+    cnode
+        .relative(badged_notification_slot.cptr())
+        .mint(
+            &cnode.relative(notification_slot.cptr()),
+            sel4::CapRights::all(),
+            badge,
+        )
+        .unwrap();
+
+    let badged_notification = badged_notification_slot
+        .downcast::<sel4::cap_type::Notification>()
+        .cap();
+
+    sel4::debug_println!("signaling badged notification");
+    badged_notification.signal();
+
+    sel4::debug_println!("waiting on notification");
+    let (_, observed_badge) = notification.wait();
+
+    sel4::debug_println!("observed badge = {:#x}", badge);
+    assert_eq!(observed_badge, badge);
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
