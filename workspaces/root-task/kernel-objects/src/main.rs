@@ -46,6 +46,12 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         .downcast::<sel4::cap_type::Notification>()
         .cap();
 
+    sel4::debug_println!("signaling notification");
+    notification.signal();
+
+    sel4::debug_println!("waiting on notification");
+    notification.wait();
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
