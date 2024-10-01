@@ -61,7 +61,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         .relative(badged_notification_slot.cptr())
         .mint(
             &cnode.relative(notification_slot.cptr()),
-            sel4::CapRights::none(),
+            sel4::CapRights::write_only(),
             badge,
         )
         .unwrap();
