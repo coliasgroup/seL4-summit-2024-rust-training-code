@@ -24,9 +24,9 @@ struct PagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
 static mut SERIAL_DEVICE_MMIO_PAGE_RESERVATION: PagePlaceHolder =
     PagePlaceHolder([0; GRANULE_SIZE]);
 
-const SERIAL_DEVICE_IRQ: usize = 33;
-
 const SERIAL_DEVICE_MMIO_PADDR: usize = 0x0900_0000;
+
+const SERIAL_DEVICE_IRQ: usize = 33;
 
 #[root_task]
 fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
@@ -34,44 +34,6 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         .empty()
         .range()
         .map(sel4::init_thread::Slot::from_index);
-
-    let largest_kernel_ut = find_largest_kernel_untyped(bootinfo);
-
-    let irq_handler_cap = empty_slots
-        .next()
-        .unwrap()
-        .downcast::<sel4::cap_type::IrqHandler>()
-        .cap();
-
-    sel4::init_thread::slot::IRQ_CONTROL
-        .cap()
-        .irq_control_get(
-            SERIAL_DEVICE_IRQ.try_into().unwrap(),
-            &sel4::init_thread::slot::CNODE
-                .cap()
-                .relative(irq_handler_cap),
-        )
-        .unwrap();
-
-    let irq_notification_slot = empty_slots
-        .next()
-        .unwrap()
-        .downcast::<sel4::cap_type::Notification>();
-
-    largest_kernel_ut
-        .untyped_retype(
-            &sel4::ObjectBlueprint::Notification,
-            &sel4::init_thread::slot::CNODE.cap().relative_self(),
-            irq_notification_slot.index(),
-            1,
-        )
-        .unwrap();
-
-    let irq_notification_cap = irq_notification_slot.cap();
-
-    irq_handler_cap
-        .irq_handler_set_notification(irq_notification_cap)
-        .unwrap();
 
     let (device_ut_ix, device_ut_desc) = bootinfo
         .untyped_list()
@@ -132,7 +94,49 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
 
     serial_device.init();
 
-    for c in b"echo> ".iter() {
+    for c in b"Hello, World!\n" {
+        serial_device.put_char(*c);
+    }
+
+    let largest_kernel_ut = find_largest_kernel_untyped(bootinfo);
+
+    let irq_handler_cap = empty_slots
+        .next()
+        .unwrap()
+        .downcast::<sel4::cap_type::IrqHandler>()
+        .cap();
+
+    sel4::init_thread::slot::IRQ_CONTROL
+        .cap()
+        .irq_control_get(
+            SERIAL_DEVICE_IRQ.try_into().unwrap(),
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .relative(irq_handler_cap),
+        )
+        .unwrap();
+
+    let irq_notification_slot = empty_slots
+        .next()
+        .unwrap()
+        .downcast::<sel4::cap_type::Notification>();
+
+    largest_kernel_ut
+        .untyped_retype(
+            &sel4::ObjectBlueprint::Notification,
+            &sel4::init_thread::slot::CNODE.cap().relative_self(),
+            irq_notification_slot.index(),
+            1,
+        )
+        .unwrap();
+
+    let irq_notification_cap = irq_notification_slot.cap();
+
+    irq_handler_cap
+        .irq_handler_set_notification(irq_notification_cap)
+        .unwrap();
+
+    for c in b"echo> " {
         serial_device.put_char(*c);
     }
 
