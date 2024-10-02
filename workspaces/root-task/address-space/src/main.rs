@@ -7,8 +7,17 @@
 #![no_std]
 #![no_main]
 
+use core::ptr;
+
 use sel4::CapTypeForObjectOfFixedSize;
 use sel4_root_task::root_task;
+
+const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
+
+#[repr(C, align(4096))]
+struct PagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
+
+static mut PAGE_A: PagePlaceHolder = PagePlaceHolder([0xee; GRANULE_SIZE]);
 
 #[root_task]
 fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
@@ -33,6 +42,11 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         .unwrap();
 
     let new_frame = new_frame_slot.downcast::<sel4::cap_type::Granule>().cap();
+
+    let page_a_addr = ptr::addr_of!(PAGE_A).cast::<u8>();
+    sel4::debug_println!("PAGE_A: {page_a_addr:#x?}");
+    assert_eq!(page_a_addr as usize % GRANULE_SIZE, 0);
+    assert_eq!(unsafe { page_a_addr.read() }, 0xee);
 
     sel4::debug_println!("TEST_PASS");
 
