@@ -18,6 +18,8 @@ workspaces := \
 
 examples := \
     root-task/hello \
+    root-task/kernel-objects \
+    root-task/address-space \
     root-task/serial-device \
     root-task/spawn-task \
     root-task/spawn-thread \

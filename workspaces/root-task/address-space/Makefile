@@ -1,0 +1,18 @@
+#
+# Copyright 2024, Colias Group, LLC
+#
+# SPDX-License-Identifier: BSD-2-Clause
+#
+
+include ../../../mk/root-task.mk
+
+crate_name := address-space
+crate := $(build_dir)/$(crate_name).elf
+
+$(crate): FORCE
+	cargo build \
+		$(common_cargo_args) \
+		-p $(crate_name)
+
+$(app): $(crate)
+	cp $< $@
