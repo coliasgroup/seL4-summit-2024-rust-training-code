@@ -51,7 +51,16 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
     let page_a_slot = get_user_image_frame_slot(bootinfo, page_a_addr as usize);
     page_a_slot.cap().frame_unmap().unwrap();
 
-    unsafe { page_a_addr.read() };
+    new_frame
+        .frame_map(
+            sel4::init_thread::slot::VSPACE.cap(),
+            page_a_addr as usize,
+            sel4::CapRights::read_write(),
+            sel4::VmAttributes::default(),
+        )
+        .unwrap();
+
+    assert_eq!(unsafe { page_a_addr.read() }, 0);
 
     sel4::debug_println!("TEST_PASS");
 
