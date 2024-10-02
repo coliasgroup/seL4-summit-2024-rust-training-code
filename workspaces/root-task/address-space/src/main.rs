@@ -48,6 +48,11 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
     assert_eq!(page_a_addr as usize % GRANULE_SIZE, 0);
     assert_eq!(unsafe { page_a_addr.read() }, 0xee);
 
+    let page_a_slot = get_user_image_frame_slot(bootinfo, page_a_addr as usize);
+    page_a_slot.cap().frame_unmap().unwrap();
+
+    unsafe { page_a_addr.read() };
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
@@ -63,4 +68,17 @@ fn find_largest_kernel_untyped(bootinfo: &sel4::BootInfo) -> sel4::cap::Untyped 
         .unwrap();
 
     bootinfo.untyped().index(ut_ix).cap()
+}
+
+fn get_user_image_frame_slot(
+    bootinfo: &sel4::BootInfo,
+    addr: usize,
+) -> sel4::init_thread::Slot<sel4::cap_type::Granule> {
+    extern "C" {
+        static __executable_start: usize;
+    }
+    let user_image_addr = ptr::addr_of!(__executable_start) as usize;
+    bootinfo
+        .user_image_frames()
+        .index(addr / GRANULE_SIZE - user_image_addr / GRANULE_SIZE)
 }
