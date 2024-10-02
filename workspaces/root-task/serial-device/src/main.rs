@@ -14,11 +14,19 @@ use sel4_root_task::{root_task, Never};
 
 mod device;
 
-use device::{Device, RegisterBlock};
+use device::Device;
+
+const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
+
+#[repr(C, align(4096))]
+struct PagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
+
+static mut SERIAL_DEVICE_MMIO_PAGE_RESERVATION: PagePlaceHolder =
+    PagePlaceHolder([0; GRANULE_SIZE]);
 
 const SERIAL_DEVICE_IRQ: usize = 33;
 
-const SERIAL_DEVICE_BASE_ADDR: usize = 0x0900_0000;
+const SERIAL_DEVICE_MMIO_PADDR: usize = 0x0900_0000;
 
 #[root_task]
 fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
@@ -27,7 +35,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         .range()
         .map(sel4::init_thread::Slot::from_index);
 
-    let kernel_ut = find_largest_kernel_untyped(bootinfo);
+    let largest_kernel_ut = find_largest_kernel_untyped(bootinfo);
 
     let irq_handler_cap = empty_slots
         .next()
@@ -50,7 +58,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         .unwrap()
         .downcast::<sel4::cap_type::Notification>();
 
-    kernel_ut
+    largest_kernel_ut
         .untyped_retype(
             &sel4::ObjectBlueprint::Notification,
             &sel4::init_thread::slot::CNODE.cap().relative_self(),
@@ -71,7 +79,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         .enumerate()
         .find(|(_i, desc)| {
             (desc.paddr()..(desc.paddr() + (1 << desc.size_bits())))
-                .contains(&SERIAL_DEVICE_BASE_ADDR)
+                .contains(&SERIAL_DEVICE_MMIO_PADDR)
         })
         .unwrap();
 
@@ -82,7 +90,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     trim_untyped(
         device_ut_cap,
         device_ut_desc.paddr(),
-        SERIAL_DEVICE_BASE_ADDR,
+        SERIAL_DEVICE_MMIO_PADDR,
         empty_slots.next().unwrap(),
         empty_slots.next().unwrap(),
     );
@@ -103,18 +111,24 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
 
     let serial_device_frame_cap = serial_device_frame_slot.cap();
 
-    let serial_device_frame_addr = init_free_page_addr(bootinfo);
+    let serial_device_mmio_page_addr =
+        ptr::addr_of_mut!(SERIAL_DEVICE_MMIO_PAGE_RESERVATION).cast::<u8>();
+
+    get_user_image_frame_slot(bootinfo, serial_device_mmio_page_addr as usize)
+        .cap()
+        .frame_unmap()
+        .unwrap();
 
     serial_device_frame_cap
         .frame_map(
             sel4::init_thread::slot::VSPACE.cap(),
-            serial_device_frame_addr,
+            serial_device_mmio_page_addr as usize,
             sel4::CapRights::read_write(),
             sel4::VmAttributes::default(),
         )
         .unwrap();
 
-    let serial_device = unsafe { Device::new(serial_device_frame_addr as *mut RegisterBlock) };
+    let serial_device = unsafe { Device::new(serial_device_mmio_page_addr.cast()) };
 
     serial_device.init();
 
@@ -136,8 +150,6 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     }
 }
 
-// // //
-
 fn find_largest_kernel_untyped(bootinfo: &sel4::BootInfo) -> sel4::cap::Untyped {
     let (ut_ix, _desc) = bootinfo
         .untyped_list()
@@ -149,8 +161,6 @@ fn find_largest_kernel_untyped(bootinfo: &sel4::BootInfo) -> sel4::cap::Untyped 
 
     bootinfo.untyped().index(ut_ix).cap()
 }
-
-// // //
 
 fn trim_untyped(
     ut: sel4::cap::Untyped,
@@ -181,22 +191,6 @@ fn trim_untyped(
     }
 }
 
-// // //
-
-#[repr(C, align(4096))]
-struct FreePagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
-
-static mut FREE_PAGE_PLACEHOLDER: FreePagePlaceHolder = FreePagePlaceHolder([0; GRANULE_SIZE]);
-
-fn init_free_page_addr(bootinfo: &sel4::BootInfo) -> usize {
-    let addr = ptr::addr_of!(FREE_PAGE_PLACEHOLDER) as usize;
-    get_user_image_frame_slot(bootinfo, addr)
-        .cap()
-        .frame_unmap()
-        .unwrap();
-    addr
-}
-
 fn get_user_image_frame_slot(
     bootinfo: &sel4::BootInfo,
     addr: usize,
@@ -209,5 +203,3 @@ fn get_user_image_frame_slot(
         .user_image_frames()
         .index(addr / GRANULE_SIZE - user_image_addr / GRANULE_SIZE)
 }
-
-const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes();
