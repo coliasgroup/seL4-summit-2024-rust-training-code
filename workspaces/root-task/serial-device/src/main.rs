@@ -123,6 +123,28 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         )
         .unwrap();
 
+    let irq_notification_slot = empty_slots
+        .next()
+        .unwrap()
+        .downcast::<sel4::cap_type::Notification>();
+
+    largest_kernel_ut
+        .untyped_retype(
+            &sel4::ObjectBlueprint::Notification,
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .absolute_cptr_for_self(),
+            irq_notification_slot.index(),
+            1,
+        )
+        .unwrap();
+
+    let irq_notification_cap = irq_notification_slot.cap();
+
+    irq_handler_cap
+        .irq_handler_set_notification(irq_notification_cap)
+        .unwrap();
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
