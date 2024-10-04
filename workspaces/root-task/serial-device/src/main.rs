@@ -19,7 +19,26 @@ const SERIAL_DEVICE_IRQ: usize = 33;
 
 #[root_task]
 fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
+    let mut empty_slots = bootinfo
+        .empty()
+        .range()
+        .map(sel4::init_thread::Slot::<sel4::cap_type::Unspecified>::from_index);
+
+    let largest_kernel_ut = find_largest_kernel_untyped(bootinfo);
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
+}
+
+fn find_largest_kernel_untyped(bootinfo: &sel4::BootInfo) -> sel4::cap::Untyped {
+    let (ut_ix, _desc) = bootinfo
+        .untyped_list()
+        .iter()
+        .enumerate()
+        .filter(|(_i, desc)| !desc.is_device())
+        .max_by_key(|(_i, desc)| desc.size_bits())
+        .unwrap();
+
+    bootinfo.untyped().index(ut_ix).cap()
 }
