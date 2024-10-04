@@ -26,6 +26,20 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
 
     let largest_kernel_ut = find_largest_kernel_untyped(bootinfo);
 
+    let (device_ut_ix, device_ut_desc) = bootinfo
+        .untyped_list()
+        .iter()
+        .enumerate()
+        .find(|(_i, desc)| {
+            (desc.paddr()..(desc.paddr() + (1 << desc.size_bits())))
+                .contains(&SERIAL_DEVICE_MMIO_PADDR)
+        })
+        .unwrap();
+
+    assert!(device_ut_desc.is_device());
+
+    let device_ut_cap = bootinfo.untyped().index(device_ut_ix).cap();
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
