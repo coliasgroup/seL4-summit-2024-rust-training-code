@@ -141,9 +141,22 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         .irq_handler_set_notification(irq_notification_cap)
         .unwrap();
 
-    sel4::debug_println!("TEST_PASS");
+    for c in b"echo> " {
+        serial_device.put_char(*c);
+    }
 
-    sel4::init_thread::suspend_self()
+    loop {
+        serial_device.clear_all_interrupts();
+        irq_handler_cap.irq_handler_ack().unwrap();
+
+        irq_notification_cap.wait();
+
+        while let Some(c) = serial_device.get_char() {
+            serial_device.put_char(b'[');
+            serial_device.put_char(c);
+            serial_device.put_char(b']');
+        }
+    }
 }
 
 fn find_largest_kernel_untyped(bootinfo: &sel4::BootInfo) -> sel4::cap::Untyped {
