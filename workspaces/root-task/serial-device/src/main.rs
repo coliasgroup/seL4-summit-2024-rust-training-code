@@ -7,6 +7,7 @@
 #![no_std]
 #![no_main]
 
+use sel4::CapTypeForObjectOfFixedSize;
 use sel4_root_task::root_task;
 
 mod device;
@@ -46,6 +47,29 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         SERIAL_DEVICE_MMIO_PADDR,
         empty_slots.next().unwrap(),
         empty_slots.next().unwrap(),
+    );
+
+    let serial_device_frame_slot = empty_slots
+        .next()
+        .unwrap()
+        .downcast::<sel4::cap_type::Granule>();
+
+    device_ut_cap
+        .untyped_retype(
+            &sel4::cap_type::Granule::object_blueprint(),
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .absolute_cptr_for_self(),
+            serial_device_frame_slot.index(),
+            1,
+        )
+        .unwrap();
+
+    let serial_device_frame_cap = serial_device_frame_slot.cap();
+
+    assert_eq!(
+        serial_device_frame_cap.frame_get_address().unwrap(),
+        SERIAL_DEVICE_MMIO_PADDR
     );
 
     sel4::debug_println!("TEST_PASS");
