@@ -105,6 +105,22 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         serial_device.put_char(*c);
     }
 
+    let irq_handler_cap = empty_slots
+        .next()
+        .unwrap()
+        .downcast::<sel4::cap_type::IrqHandler>()
+        .cap();
+
+    sel4::init_thread::slot::IRQ_CONTROL
+        .cap()
+        .irq_control_get(
+            SERIAL_DEVICE_IRQ.try_into().unwrap(),
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .relative(irq_handler_cap),
+        )
+        .unwrap();
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
