@@ -7,6 +7,8 @@
 #![no_std]
 #![no_main]
 
+use core::ptr;
+
 use sel4::CapTypeForObjectOfFixedSize;
 use sel4_root_task::root_task;
 
@@ -17,6 +19,14 @@ use device::Device;
 const SERIAL_DEVICE_MMIO_PADDR: usize = 0x0900_0000;
 
 const SERIAL_DEVICE_IRQ: usize = 33;
+
+const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
+
+#[repr(C, align(4096))]
+struct PagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
+
+static mut SERIAL_DEVICE_MMIO_PAGE_RESERVATION: PagePlaceHolder =
+    PagePlaceHolder([0; GRANULE_SIZE]);
 
 #[root_task]
 fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
@@ -70,6 +80,31 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
         SERIAL_DEVICE_MMIO_PADDR
     );
 
+    let serial_device_mmio_page_addr =
+        ptr::addr_of_mut!(SERIAL_DEVICE_MMIO_PAGE_RESERVATION).cast::<u8>();
+
+    get_user_image_frame_slot(bootinfo, serial_device_mmio_page_addr as usize)
+        .cap()
+        .frame_unmap()
+        .unwrap();
+
+    serial_device_frame_cap
+        .frame_map(
+            sel4::init_thread::slot::VSPACE.cap(),
+            serial_device_mmio_page_addr as usize,
+            sel4::CapRights::read_write(),
+            sel4::VmAttributes::default(),
+        )
+        .unwrap();
+
+    let serial_device = unsafe { Device::new(serial_device_mmio_page_addr.cast()) };
+
+    serial_device.init();
+
+    for c in b"Hello, World!\n" {
+        serial_device.put_char(*c);
+    }
+
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
@@ -114,4 +149,17 @@ fn trim_untyped(
         rel_a.move_(&rel_b).unwrap();
         cur_paddr += 1 << size_bits;
     }
+}
+
+fn get_user_image_frame_slot(
+    bootinfo: &sel4::BootInfo,
+    addr: usize,
+) -> sel4::init_thread::Slot<sel4::cap_type::Granule> {
+    extern "C" {
+        static __executable_start: usize;
+    }
+    let user_image_addr = ptr::addr_of!(__executable_start) as usize;
+    bootinfo
+        .user_image_frames()
+        .index(addr / GRANULE_SIZE - user_image_addr / GRANULE_SIZE)
 }
