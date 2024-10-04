@@ -13,6 +13,10 @@ mod device;
 
 use device::Device;
 
+const SERIAL_DEVICE_MMIO_PADDR: usize = 0x0900_0000;
+
+const SERIAL_DEVICE_IRQ: usize = 33;
+
 #[root_task]
 fn main(bootinfo: &sel4::BootInfoPtr) -> ! {
     sel4::debug_println!("TEST_PASS");
