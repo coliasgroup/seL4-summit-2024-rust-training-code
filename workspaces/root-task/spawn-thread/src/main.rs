@@ -75,23 +75,37 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
 fn secondary_thread_main(inter_thread_ep: sel4::cap::Endpoint) {
     sel4::debug_println!("In secondary thread");
 
+    let (msg_info, _badge) = inter_thread_ep.recv(());
+
+    assert_eq!(msg_info.length(), 1);
+    sel4::with_ipc_buffer(|ipc_buf| {
+        assert_eq!(ipc_buf.msg_regs()[0], 0xabc);
+    });
+
     sel4::with_ipc_buffer_mut(|ipc_buf| {
         ipc_buf.msg_regs_mut()[0] = 456;
         ipc_buf.msg_regs_mut()[1] = 789;
     });
 
-    inter_thread_ep.send(
-        sel4::MessageInfoBuilder::default()
-            .label(123)
-            .length(2)
-            .build(),
-    );
+    sel4::with_ipc_buffer_mut(|ipc_buf| {
+        sel4::reply(
+            ipc_buf,
+            sel4::MessageInfoBuilder::default()
+                .label(123)
+                .length(2)
+                .build(),
+        )
+    });
 }
 
 fn interact_with_secondary_thread(inter_thread_ep: sel4::cap::Endpoint) {
     sel4::debug_println!("In primary thread");
 
-    let (msg_info, _badge) = inter_thread_ep.recv(());
+    sel4::with_ipc_buffer_mut(|ipc_buf| {
+        ipc_buf.msg_regs_mut()[0] = 0xabc;
+    });
+
+    let msg_info = inter_thread_ep.call(sel4::MessageInfoBuilder::default().length(1).build());
 
     assert_eq!(msg_info.label(), 123);
     assert_eq!(msg_info.length(), 2);
