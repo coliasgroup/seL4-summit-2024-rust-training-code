@@ -6,8 +6,8 @@
 
 from harness import Simulation
 
-sim = Simulation.from_args()
-sim.child.expect('banscii>', timeout=3)
-sim.child.sendline('Hello, World!')
-sim.child.expect('banscii>', timeout=1)
-print()
+with Simulation.from_args() as sim:
+    sim.child.expect('banscii>', timeout=3)
+    sim.child.sendline('Hello, World!')
+    sim.child.expect('banscii>', timeout=1)
+    print()
