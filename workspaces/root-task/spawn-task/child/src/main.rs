@@ -7,7 +7,10 @@
 #![no_std]
 #![no_main]
 
+mod device;
 mod runtime;
+
+use device::Device;
 
 const OWN_TCB: sel4::cap::Tcb = sel4::cap::Tcb::from_bits(1);
 const INTRA_TASK_EP: sel4::cap::Endpoint = sel4::cap::Endpoint::from_bits(2);

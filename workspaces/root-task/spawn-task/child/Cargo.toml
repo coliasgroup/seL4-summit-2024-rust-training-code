@@ -18,6 +18,7 @@ sel4-dlmalloc = { git = "https://github.com/seL4/rust-sel4" }
 sel4-panicking = { git = "https://github.com/seL4/rust-sel4", features = ["unwinding", "alloc"] }
 sel4-panicking-env = { git = "https://github.com/seL4/rust-sel4" }
 sel4-sync = { git = "https://github.com/seL4/rust-sel4" }
+tock-registers = "0.8.1"
 
 [dependencies.sel4-runtime-common]
 git = "https://github.com/seL4/rust-sel4"
