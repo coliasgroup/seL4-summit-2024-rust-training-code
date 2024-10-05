@@ -5,11 +5,11 @@
 #
 
 [package]
-name = "microkit-ipc-server"
+name = "microkit-shared-memory-common"
 version = "0.1.0"
 authors = ["Nick Spinale <nick.spinale@coliasgroup.com>"]
 edition = "2021"
 license = "BSD-2-Clause"
 
 [dependencies]
-sel4-microkit = { git = "https://github.com/seL4/rust-sel4" }
+zerocopy = { version = "0.7.32", features = [ "derive" ] }

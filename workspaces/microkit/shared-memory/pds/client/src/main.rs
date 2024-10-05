@@ -7,17 +7,39 @@
 #![no_std]
 #![no_main]
 
-use sel4_microkit::{debug_println, protection_domain, Channel, Handler, Infallible, MessageInfo};
+use microkit_shared_memory_common::{RegionB, REGION_A_SIZE};
+
+use sel4_externally_shared::{
+    access::{ReadOnly, ReadWrite},
+    ExternallySharedRef, ExternallySharedRefExt,
+};
+use sel4_microkit::{
+    debug_println, memory_region_symbol, protection_domain, Channel, Handler, Infallible,
+    MessageInfo,
+};
 
 const SERVER: Channel = Channel::new(13);
 
 #[protection_domain]
 fn init() -> HandlerImpl {
     debug_println!("client: initializing");
-    HandlerImpl
+
+    let region_a = unsafe {
+        ExternallySharedRef::new(
+            memory_region_symbol!(region_a_vaddr: *mut [u8], n = REGION_A_SIZE),
+        )
+    };
+
+    let region_b =
+        unsafe { ExternallySharedRef::new(memory_region_symbol!(region_b_vaddr: *mut RegionB)) };
+
+    HandlerImpl { region_a, region_b }
 }
 
-struct HandlerImpl;
+struct HandlerImpl {
+    region_a: ExternallySharedRef<'static, [u8], ReadOnly>,
+    region_b: ExternallySharedRef<'static, RegionB, ReadWrite>,
+}
 
 impl Handler for HandlerImpl {
     type Error = Infallible;

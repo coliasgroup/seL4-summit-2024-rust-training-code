@@ -475,6 +475,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "microkit-shared-memory-client"
+version = "0.1.0"
+dependencies = [
+ "microkit-shared-memory-common",
+ "sel4-externally-shared",
+ "sel4-microkit",
+]
+
+[[package]]
+name = "microkit-shared-memory-common"
+version = "0.1.0"
+dependencies = [
+ "zerocopy",
+]
+
+[[package]]
+name = "microkit-shared-memory-server"
+version = "0.1.0"
+dependencies = [
+ "microkit-shared-memory-common",
+ "sel4-externally-shared",
+ "sel4-microkit",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
