@@ -13,6 +13,8 @@ use sel4_sync::PanickingRawMutex;
 
 use crate::main;
 
+const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
+
 const STACK_SIZE: usize = 1024 * 16;
 
 sel4_runtime_common::declare_stack!(STACK_SIZE);
@@ -57,10 +59,12 @@ fn inner_entry() -> ! {
 }
 
 fn get_ipc_buffer() -> *mut sel4::IpcBuffer {
+    addr_of_page_beyond_image(0) as *mut sel4::IpcBuffer
+}
+
+pub(crate) fn addr_of_page_beyond_image(index: usize) -> usize {
     extern "C" {
         static _end: usize;
     }
-    (ptr::addr_of!(_end) as usize)
-        .next_multiple_of(sel4::cap_type::Granule::FRAME_OBJECT_TYPE.bytes())
-        as *mut sel4::IpcBuffer
+    (ptr::addr_of!(_end) as usize).next_multiple_of(GRANULE_SIZE) + index * GRANULE_SIZE
 }
