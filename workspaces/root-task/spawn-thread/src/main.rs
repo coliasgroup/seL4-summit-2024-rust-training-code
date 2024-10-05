@@ -70,6 +70,11 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     let (msg_info, _badge) = inter_thread_ep.recv(());
 
     assert_eq!(msg_info.label(), 123);
+    assert_eq!(msg_info.length(), 2);
+    sel4::with_ipc_buffer(|ipc_buf| {
+        assert_eq!(ipc_buf.msg_regs()[0], 456);
+        assert_eq!(ipc_buf.msg_regs()[1], 789);
+    });
 
     sel4::debug_println!("TEST_PASS");
 
@@ -79,7 +84,17 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
 fn secondary_thread_main(inter_thread_ep: sel4::cap::Endpoint) {
     sel4::debug_println!("In secondary thread");
 
-    inter_thread_ep.send(sel4::MessageInfoBuilder::default().label(123).build());
+    sel4::with_ipc_buffer_mut(|ipc_buf| {
+        ipc_buf.msg_regs_mut()[0] = 456;
+        ipc_buf.msg_regs_mut()[1] = 789;
+    });
+
+    inter_thread_ep.send(
+        sel4::MessageInfoBuilder::default()
+            .label(123)
+            .length(2)
+            .build(),
+    );
 }
 
 // Simple object allocator that just uses the largest kernel untyped to allocate objects into the
