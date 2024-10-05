@@ -40,7 +40,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         object_allocator.allocate_fixed_sized::<sel4::cap_type::Notification>(),
     );
 
-    let inter_thread_nfn = object_allocator.allocate_fixed_sized::<sel4::cap_type::Notification>();
+    let inter_thread_ep = object_allocator.allocate_fixed_sized::<sel4::cap_type::Endpoint>();
 
     let secondary_thread_tcb = object_allocator.allocate_fixed_sized::<sel4::cap_type::Tcb>();
 
@@ -56,7 +56,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     // This is the function that will run in the secondary thread.
     let secondary_thread_fn = SecondaryThreadFn::new(move || {
         unsafe { sel4::set_ipc_buffer(SECONDARY_THREAD_IPC_BUFFER_FRAME.ptr().as_mut().unwrap()) }
-        secondary_thread_main(inter_thread_nfn);
+        secondary_thread_main(inter_thread_ep);
         secondary_thread_tcb.tcb_suspend().unwrap();
         unreachable!()
     });
@@ -65,23 +65,25 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     secondary_thread_tcb
         .tcb_write_all_registers(true, &mut create_user_context(secondary_thread_fn))?;
 
-    interact_with_secondary_thread(inter_thread_nfn);
+    interact_with_secondary_thread(inter_thread_ep);
 
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
 }
 
-fn secondary_thread_main(inter_thread_nfn: sel4::cap::Notification) {
+fn secondary_thread_main(inter_thread_ep: sel4::cap::Endpoint) {
     sel4::debug_println!("In secondary thread");
 
-    inter_thread_nfn.signal();
+    inter_thread_ep.send(sel4::MessageInfoBuilder::default().label(123).build());
 }
 
-fn interact_with_secondary_thread(inter_thread_nfn: sel4::cap::Notification) {
+fn interact_with_secondary_thread(inter_thread_ep: sel4::cap::Endpoint) {
     sel4::debug_println!("In primary thread");
 
-    inter_thread_nfn.wait();
+    let (msg_info, _badge) = inter_thread_ep.recv(());
+
+    assert_eq!(msg_info.label(), 123);
 }
 
 // Simple object allocator that just uses the largest kernel untyped to allocate objects into the
