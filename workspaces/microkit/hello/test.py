@@ -6,5 +6,5 @@
 
 from harness import Simulation
 
-sim = Simulation.from_args()
-sim.child.expect('Hello, World!', timeout=3)
+with Simulation.from_args() as sim:
+    sim.child.expect('Hello, World!', timeout=1)
