@@ -14,7 +14,13 @@ use object::{
 
 use crate::ObjectAllocator;
 
-const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes();
+const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
+
+pub(crate) struct ChildVSpaceInfo {
+    pub(crate) child_vspace: sel4::cap::VSpace,
+    pub(crate) ipc_buffer_addr: usize,
+    pub(crate) ipc_buffer_cap: sel4::cap::Granule,
+}
 
 pub(crate) fn create_child_vspace<'a>(
     allocator: &mut ObjectAllocator,
@@ -22,7 +28,7 @@ pub(crate) fn create_child_vspace<'a>(
     caller_vspace: sel4::cap::VSpace,
     free_page_addr: usize,
     asid_pool: sel4::cap::AsidPool,
-) -> (sel4::cap::VSpace, usize, sel4::cap::Granule) {
+) -> ChildVSpaceInfo {
     let child_vspace = allocator.allocate_fixed_sized::<sel4::cap_type::VSpace>();
     asid_pool.asid_pool_assign(child_vspace).unwrap();
 
@@ -54,7 +60,11 @@ pub(crate) fn create_child_vspace<'a>(
         )
         .unwrap();
 
-    (child_vspace, ipc_buffer_addr, ipc_buffer_cap)
+    ChildVSpaceInfo {
+        child_vspace,
+        ipc_buffer_addr,
+        ipc_buffer_cap,
+    }
 }
 
 fn footprint<'a>(image: &'a impl Object<'a>) -> Range<usize> {

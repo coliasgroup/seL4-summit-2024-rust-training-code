@@ -14,7 +14,7 @@ use sel4_sync::PanickingRawMutex;
 
 use crate::main;
 
-const STACK_SIZE: usize = 1024 * 64;
+const STACK_SIZE: usize = 1024 * 16;
 
 sel4_runtime_common::declare_stack!(STACK_SIZE);
 

@@ -24,21 +24,33 @@ use object_allocator::ObjectAllocator;
 
 const CHILD_ELF_CONTENTS: &[u8] = include_bytes!(env!("CHILD_ELF"));
 
+const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
+
+#[repr(C, align(4096))]
+struct PagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
+
+static mut FILL_PAGE_RESERVATION: PagePlaceHolder = PagePlaceHolder([0; GRANULE_SIZE]);
+
 #[root_task(heap_size = 1024 * 64)]
 fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     sel4::debug_println!("In root task");
 
     let mut object_allocator = ObjectAllocator::new(bootinfo);
 
-    let free_page_addr = init_free_page_addr(bootinfo);
+    let fill_page_addr = ptr::addr_of!(FILL_PAGE_RESERVATION) as usize;
+
+    get_user_image_frame_slot(bootinfo, fill_page_addr)
+        .cap()
+        .frame_unmap()
+        .unwrap();
 
     let child_image = File::parse(CHILD_ELF_CONTENTS).unwrap();
 
-    let (child_vspace, ipc_buffer_addr, ipc_buffer_cap) = create_child_vspace(
+    let child_vspace_info = create_child_vspace(
         &mut object_allocator,
         &child_image,
         sel4::init_thread::slot::VSPACE.cap(),
-        free_page_addr,
+        fill_page_addr,
         sel4::init_thread::slot::ASID_POOL.cap(),
     );
 
@@ -66,9 +78,9 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
             sel4::init_thread::slot::NULL.cptr(),
             child_cnode,
             sel4::CNodeCapData::new(0, sel4::WORD_SIZE - child_cnode_size_bits),
-            child_vspace,
-            ipc_buffer_addr as sel4::Word,
-            ipc_buffer_cap,
+            child_vspace_info.child_vspace,
+            child_vspace_info.ipc_buffer_addr as sel4::Word,
+            child_vspace_info.ipc_buffer_cap,
         )
         .unwrap();
 
@@ -92,22 +104,6 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     sel4::init_thread::suspend_self()
 }
 
-// // //
-
-#[repr(C, align(4096))]
-struct FreePagePlaceHolder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
-
-static mut FREE_PAGE_PLACEHOLDER: FreePagePlaceHolder = FreePagePlaceHolder([0; GRANULE_SIZE]);
-
-fn init_free_page_addr(bootinfo: &sel4::BootInfo) -> usize {
-    let addr = ptr::addr_of!(FREE_PAGE_PLACEHOLDER) as usize;
-    get_user_image_frame_slot(bootinfo, addr)
-        .cap()
-        .frame_unmap()
-        .unwrap();
-    addr
-}
-
 fn get_user_image_frame_slot(
     bootinfo: &sel4::BootInfo,
     addr: usize,
@@ -120,5 +116,3 @@ fn get_user_image_frame_slot(
         .user_image_frames()
         .index(addr / GRANULE_SIZE - user_image_addr / GRANULE_SIZE)
 }
-
-const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes();
