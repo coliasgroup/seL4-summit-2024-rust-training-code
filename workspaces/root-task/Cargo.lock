@@ -749,7 +749,6 @@ dependencies = [
 name = "spawn-thread"
 version = "0.1.0"
 dependencies = [
- "cfg-if",
  "sel4",
  "sel4-elf-header",
  "sel4-initialize-tls",

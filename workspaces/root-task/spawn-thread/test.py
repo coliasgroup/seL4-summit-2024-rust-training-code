@@ -6,4 +6,7 @@
 
 from harness import Simulation
 
-Simulation.from_args().simple_test()
+with Simulation.from_args() as sim:
+    sim.child.expect('In primary thread', timeout=1)
+    sim.child.expect('In secondary thread', timeout=1)
+    sim.child.expect('TEST_PASS', timeout=1)

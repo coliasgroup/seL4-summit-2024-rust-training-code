@@ -12,7 +12,6 @@ edition = "2021"
 license = "BSD-2-Clause"
 
 [dependencies]
-cfg-if = "1.0.0"
 sel4 = { git = "https://github.com/seL4/rust-sel4" }
 sel4-elf-header = { git = "https://github.com/seL4/rust-sel4" }
 sel4-initialize-tls = { git = "https://github.com/seL4/rust-sel4" }

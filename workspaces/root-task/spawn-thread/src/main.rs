@@ -17,14 +17,14 @@ use core::ops::Range;
 use core::panic::UnwindSafe;
 use core::ptr;
 
-use cfg_if::cfg_if;
-
 use sel4_elf_header::{ElfHeader, PT_TLS};
 use sel4_initialize_tls::{TlsImage, TlsReservationLayout, UncheckedTlsImage};
 use sel4_root_task::{
     abort, panicking::catch_unwind, root_task, set_global_allocator_mutex_notification, Never,
 };
 use sel4_stack::Stack;
+
+const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
 
 static SECONDARY_THREAD_STACK: Stack<4096> = Stack::new();
 
@@ -55,8 +55,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
 
     let secondary_thread_fn = SecondaryThreadFn::new(move || {
         unsafe { sel4::set_ipc_buffer(SECONDARY_THREAD_IPC_BUFFER_FRAME.ptr().as_mut().unwrap()) }
-        sel4::debug_println!("In secondary thread");
-        inter_thread_nfn.signal();
+        secondary_thread_main(inter_thread_nfn);
         secondary_thread_tcb.tcb_suspend().unwrap();
         unreachable!()
     });
@@ -69,6 +68,11 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
+}
+
+fn secondary_thread_main(inter_thread_nfn: sel4::cap::Notification) {
+    sel4::debug_println!("In secondary thread");
+    inter_thread_nfn.signal();
 }
 
 // // //
@@ -91,23 +95,6 @@ impl ObjectAllocator {
         self.ut
             .untyped_retype(
                 &T::object_blueprint(),
-                &sel4::init_thread::slot::CNODE.cap().relative_self(),
-                slot_index,
-                1,
-            )
-            .unwrap();
-        sel4::init_thread::Slot::from_index(slot_index).cap()
-    }
-
-    #[allow(dead_code)]
-    fn allocate_variable_sized<T: sel4::CapTypeForObjectOfVariableSize>(
-        &mut self,
-        size_bits: usize,
-    ) -> sel4::Cap<T> {
-        let slot_index = self.empty_slots.next().unwrap();
-        self.ut
-            .untyped_retype(
-                &T::object_blueprint(size_bits),
                 &sel4::init_thread::slot::CNODE.cap().relative_self(),
                 slot_index,
                 1,
@@ -141,41 +128,10 @@ fn create_user_context(f: SecondaryThreadFn) -> sel4::UserContext {
     *ctx.c_param_mut(0) = f.into_arg();
 
     let tls_reservation = TlsReservation::new(&get_tls_image());
-    *user_context_thread_pointer_mut(&mut ctx) = tls_reservation.thread_pointer() as sel4::Word;
+    ctx.inner_mut().tpidr_el0 = tls_reservation.thread_pointer() as sel4::Word;
     mem::forget(tls_reservation);
 
-    cfg_if! {
-        if #[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))] {
-            ctx.inner_mut().gp = riscv_get_gp();
-        }
-    }
-
     ctx
-}
-
-fn user_context_thread_pointer_mut(ctx: &mut sel4::UserContext) -> &mut sel4::Word {
-    cfg_if! {
-        if #[cfg(target_arch = "aarch64")] {
-            &mut ctx.inner_mut().tpidr_el0
-        } else if #[cfg(target_arch = "arm")] {
-            &mut ctx.inner_mut().tpidrurw
-        } else if #[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))] {
-            &mut ctx.inner_mut().tp
-        } else if #[cfg(target_arch = "x86_64")] {
-            &mut ctx.inner_mut().fs_base
-        } else {
-            compile_error!("unsupported architecture");
-        }
-    }
-}
-
-#[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
-fn riscv_get_gp() -> sel4::Word {
-    let val: sel4::Word;
-    unsafe {
-        core::arch::asm!("mv {}, gp", out(reg) val);
-    }
-    val
 }
 
 // // //
@@ -287,5 +243,3 @@ fn get_user_image_frame_slot(
         .user_image_frames()
         .index(addr / GRANULE_SIZE - user_image_addr / GRANULE_SIZE)
 }
-
-const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes();
