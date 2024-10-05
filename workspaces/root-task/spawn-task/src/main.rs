@@ -52,6 +52,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         sel4::init_thread::slot::VSPACE.cap(),
         fill_page_addr,
         sel4::init_thread::slot::ASID_POOL.cap(),
+        &[],
     );
 
     let inter_task_ep = object_allocator.allocate_fixed_sized::<sel4::cap_type::Endpoint>();
