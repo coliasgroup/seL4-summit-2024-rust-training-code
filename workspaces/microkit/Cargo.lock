@@ -461,6 +461,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "microkit-ipc-client"
+version = "0.1.0"
+dependencies = [
+ "sel4-microkit",
+]
+
+[[package]]
+name = "microkit-ipc-server"
+version = "0.1.0"
+dependencies = [
+ "sel4-microkit",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

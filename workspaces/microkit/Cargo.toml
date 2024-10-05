@@ -10,6 +10,8 @@ resolver = "2"
 
 members = [
     "hello/pds/hello",
+    "ipc/pds/client",
+    "ipc/pds/server",
     "banscii/pds/artist",
     "banscii/pds/assistant",
     "banscii/pds/serial-driver",

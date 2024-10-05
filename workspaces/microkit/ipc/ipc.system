@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright 2023, Colias Group, LLC
+
+    SPDX-License-Identifier: BSD-2-Clause
+-->
+<system>
+    <protection_domain name="client" priority="200">
+        <program_image path="microkit-ipc-client.elf" />
+    </protection_domain>
+
+    <protection_domain name="server" priority="100" pp="true">
+        <program_image path="microkit-ipc-server.elf" />
+    </protection_domain>
+
+    <channel>
+        <end pd="client" id="13" />
+        <end pd="server" id="37" />
+    </channel>
+</system>
