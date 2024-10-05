@@ -26,16 +26,16 @@ use sel4_stack::Stack;
 
 const GRANULE_SIZE: usize = sel4::FrameObjectType::GRANULE.bytes(); // 4096
 
-static SECONDARY_THREAD_STACK: Stack<4096> = Stack::new();
+static SECONDARY_THREAD_STACK: Stack<8192> = Stack::new();
 
 static SECONDARY_THREAD_IPC_BUFFER_FRAME: IpcBufferFrame = IpcBufferFrame::new();
 
-#[root_task(heap_size = 1024 * 64)]
+#[root_task(heap_size = 64 * 1024)]
 fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
-    sel4::debug_println!("In primary thread");
-
     let mut object_allocator = ObjectAllocator::new(bootinfo);
 
+    // Provide a notification capability that the global heap allocator can use for its mutex. If we
+    // didn't provide this, then the global heap allocator would panic in the case of contention.
     set_global_allocator_mutex_notification(
         object_allocator.allocate_fixed_sized::<sel4::cap_type::Notification>(),
     );
@@ -53,6 +53,7 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         SECONDARY_THREAD_IPC_BUFFER_FRAME.cap(bootinfo),
     )?;
 
+    // This is the function that will run in the secondary thread.
     let secondary_thread_fn = SecondaryThreadFn::new(move || {
         unsafe { sel4::set_ipc_buffer(SECONDARY_THREAD_IPC_BUFFER_FRAME.ptr().as_mut().unwrap()) }
         secondary_thread_main(inter_thread_nfn);
@@ -60,8 +61,11 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         unreachable!()
     });
 
+    // Initialize the secondary thread context and start it.
     secondary_thread_tcb
         .tcb_write_all_registers(true, &mut create_user_context(secondary_thread_fn))?;
+
+    sel4::debug_println!("In primary thread");
 
     inter_thread_nfn.wait();
 
@@ -72,11 +76,12 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
 
 fn secondary_thread_main(inter_thread_nfn: sel4::cap::Notification) {
     sel4::debug_println!("In secondary thread");
+
     inter_thread_nfn.signal();
 }
 
-// // //
-
+// Simple object allocator that just uses the largest kernel untyped to allocate objects into the
+// root task's initial CSpace's empty slots.
 struct ObjectAllocator {
     empty_slots: Range<usize>,
     ut: sel4::cap::Untyped,
@@ -116,8 +121,7 @@ fn find_largest_kernel_untyped(bootinfo: &sel4::BootInfo) -> sel4::cap::Untyped 
     bootinfo.untyped().index(ut_ix).cap()
 }
 
-// // //
-
+// Set up a user context for a secondary thread. This context's PC will point to `f`.
 fn create_user_context(f: SecondaryThreadFn) -> sel4::UserContext {
     let mut ctx = sel4::UserContext::default();
 
@@ -134,14 +138,16 @@ fn create_user_context(f: SecondaryThreadFn) -> sel4::UserContext {
     ctx
 }
 
-// // //
-
+// Concrete entrypoint for secondary threads. `arg` will be interpreted by
+// `SecondaryThreadFn::from_arg`.
 unsafe extern "C" fn secondary_thread_entrypoint(arg: sel4::Word) -> ! {
     let f = SecondaryThreadFn::from_arg(arg);
     let _ = catch_unwind(|| f.run());
     abort!("secondary thread panicked")
 }
 
+// Type of a closure that will be sent to `secondary_thread_entrypoint` and ultimately run in a
+// secondary thread.
 struct SecondaryThreadFn(Box<dyn FnOnce() -> ! + UnwindSafe + Send + 'static>);
 
 impl SecondaryThreadFn {
@@ -162,8 +168,8 @@ impl SecondaryThreadFn {
     }
 }
 
-// // //
-
+// A region of memory to be used as thread-local storage for a secondary thread. We use the raw
+// `alloc::alloc` API to have run-time control over layout.
 struct TlsReservation {
     start: *mut u8,
     layout: TlsReservationLayout,
@@ -192,6 +198,8 @@ impl Drop for TlsReservation {
     }
 }
 
+// Find the TLS image in the ELF PHDRs. The linker provides `__ehdr_start`, which points at the ELF
+// file header.
 fn get_tls_image() -> TlsImage {
     extern "C" {
         static __ehdr_start: ElfHeader;
@@ -210,8 +218,7 @@ fn get_tls_image() -> TlsImage {
     unchecked.check().unwrap()
 }
 
-// // //
-
+// An aligned granule to be used as the IPC buffer for a secondary thread.
 #[repr(C, align(4096))]
 struct IpcBufferFrame(UnsafeCell<[u8; GRANULE_SIZE]>);
 
@@ -231,6 +238,8 @@ impl IpcBufferFrame {
     }
 }
 
+// Find the slot in the root task initial CSpace containing the page capability containing the given
+// address.
 fn get_user_image_frame_slot(
     bootinfo: &sel4::BootInfo,
     addr: usize,
