@@ -6,7 +6,7 @@
 -->
 <system>
 
-    <memory_region name="serial_mmio" size="0x1_000" phys_addr="150994944" />
+    <memory_region name="serial_mmio" size="0x1_000" phys_addr="0x9_000_000" />
 
     <memory_region name="assistant_to_artist" size="0x4_000" />
     <memory_region name="artist_to_assistant" size="0x4_000" />
