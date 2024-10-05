@@ -14,6 +14,7 @@ use core::ptr;
 
 use object::{File, Object};
 
+use sel4::CapTypeForObjectOfFixedSize;
 use sel4_root_task::{root_task, Never};
 
 mod child_vspace;
@@ -50,16 +51,44 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
 
     let child_image = File::parse(CHILD_ELF_CONTENTS).unwrap();
 
+    let serial_device_frame_cap = object_allocator
+        .recklessly_allocate_at(
+            sel4::cap_type::Granule::object_blueprint(),
+            SERIAL_DEVICE_MMIO_PADDR,
+        )
+        .cast();
+
     let child_vspace_info = create_child_vspace(
         &mut object_allocator,
         &child_image,
         sel4::init_thread::slot::VSPACE.cap(),
         fill_page_addr,
         sel4::init_thread::slot::ASID_POOL.cap(),
-        &[],
+        &[serial_device_frame_cap],
     );
 
     let inter_task_ep = object_allocator.allocate_fixed_sized::<sel4::cap_type::Endpoint>();
+
+    let irq_handler_cap = object_allocator
+        .allocate_slot()
+        .downcast::<sel4::cap_type::IrqHandler>()
+        .cap();
+
+    sel4::init_thread::slot::IRQ_CONTROL
+        .cap()
+        .irq_control_get(
+            SERIAL_DEVICE_IRQ.try_into().unwrap(),
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .absolute_cptr(irq_handler_cap),
+        )
+        .unwrap();
+
+    let irq_nfn_cap = object_allocator.allocate_fixed_sized::<sel4::cap_type::Notification>();
+
+    irq_handler_cap
+        .irq_handler_set_notification(irq_nfn_cap)
+        .unwrap();
 
     let child_cnode_size_bits = 4;
     let child_cnode =
@@ -87,6 +116,28 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
                 .cap()
                 .absolute_cptr(inter_task_ep),
             sel4::CapRights::write_only(),
+            0,
+        )
+        .unwrap();
+
+    child_cnode
+        .absolute_cptr_from_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
+        .mint(
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .absolute_cptr(irq_handler_cap),
+            sel4::CapRights::all(),
+            0,
+        )
+        .unwrap();
+
+    child_cnode
+        .absolute_cptr_from_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
+        .mint(
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .absolute_cptr(irq_nfn_cap),
+            sel4::CapRights::all(),
             0,
         )
         .unwrap();
