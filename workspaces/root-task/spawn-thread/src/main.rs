@@ -72,16 +72,16 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     sel4::init_thread::suspend_self()
 }
 
-fn interact_with_secondary_thread(inter_thread_nfn: sel4::cap::Notification) {
-    sel4::debug_println!("In primary thread");
-
-    inter_thread_nfn.wait();
-}
-
 fn secondary_thread_main(inter_thread_nfn: sel4::cap::Notification) {
     sel4::debug_println!("In secondary thread");
 
     inter_thread_nfn.signal();
+}
+
+fn interact_with_secondary_thread(inter_thread_nfn: sel4::cap::Notification) {
+    sel4::debug_println!("In primary thread");
+
+    inter_thread_nfn.wait();
 }
 
 // Simple object allocator that just uses the largest kernel untyped to allocate objects into the
