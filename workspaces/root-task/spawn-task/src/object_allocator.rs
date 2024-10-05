@@ -19,17 +19,21 @@ impl ObjectAllocator {
         }
     }
 
+    pub(crate) fn allocate_slot(&mut self) -> sel4::init_thread::Slot {
+        sel4::init_thread::Slot::from_index(self.empty_slots.next().unwrap())
+    }
+
     pub(crate) fn allocate(&mut self, blueprint: sel4::ObjectBlueprint) -> sel4::cap::Unspecified {
-        let slot_index = self.empty_slots.next().unwrap();
+        let slot = self.allocate_slot();
         self.ut
             .untyped_retype(
                 &blueprint,
                 &sel4::init_thread::slot::CNODE.cap().relative_self(),
-                slot_index,
+                slot.index(),
                 1,
             )
             .unwrap();
-        sel4::init_thread::Slot::from_index(slot_index).cap()
+        slot.cap()
     }
 
     pub(crate) fn allocate_fixed_sized<T: sel4::CapTypeForObjectOfFixedSize>(
