@@ -6,7 +6,6 @@
 
 use core::ptr;
 
-use sel4::CapTypeForFrameObjectOfFixedSize;
 use sel4_dlmalloc::{StaticDlmallocGlobalAlloc, StaticHeap};
 use sel4_panicking::catch_unwind;
 use sel4_panicking_env::abort;
