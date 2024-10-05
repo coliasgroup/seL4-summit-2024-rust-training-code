@@ -54,24 +54,33 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         sel4::init_thread::slot::ASID_POOL.cap(),
     );
 
-    let inter_task_nfn = object_allocator.allocate_fixed_sized::<sel4::cap_type::Notification>();
+    let inter_task_ep = object_allocator.allocate_fixed_sized::<sel4::cap_type::Endpoint>();
 
-    let child_cnode_size_bits = 2;
+    let child_cnode_size_bits = 4;
     let child_cnode =
         object_allocator.allocate_variable_sized::<sel4::cap_type::CNode>(child_cnode_size_bits);
 
+    let child_tcb = object_allocator.allocate_fixed_sized::<sel4::cap_type::Tcb>();
+
+    let mut child_cnode_slot = 1..;
+
     child_cnode
-        .relative_bits_with_depth(1, child_cnode_size_bits)
+        .relative_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
         .mint(
-            &sel4::init_thread::slot::CNODE
-                .cap()
-                .relative(inter_task_nfn),
-            sel4::CapRights::write_only(),
+            &sel4::init_thread::slot::CNODE.cap().relative(child_tcb),
+            sel4::CapRights::all(),
             0,
         )
         .unwrap();
 
-    let child_tcb = object_allocator.allocate_fixed_sized::<sel4::cap_type::Tcb>();
+    child_cnode
+        .relative_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
+        .mint(
+            &sel4::init_thread::slot::CNODE.cap().relative(inter_task_ep),
+            sel4::CapRights::write_only(),
+            0,
+        )
+        .unwrap();
 
     child_tcb
         .tcb_configure(
@@ -84,20 +93,16 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
         )
         .unwrap();
 
-    child_cnode
-        .relative_bits_with_depth(2, child_cnode_size_bits)
-        .mint(
-            &sel4::init_thread::slot::CNODE.cap().relative(child_tcb),
-            sel4::CapRights::all(),
-            0,
-        )
-        .unwrap();
-
     let mut ctx = sel4::UserContext::default();
     *ctx.pc_mut() = child_image.entry().try_into().unwrap();
     child_tcb.tcb_write_all_registers(true, &mut ctx).unwrap();
 
-    inter_task_nfn.wait();
+    let (msg_info, _badge) = inter_task_ep.recv(());
+
+    assert_eq!(msg_info.length(), 1);
+    sel4::with_ipc_buffer(|ipc_buf| {
+        assert_eq!(ipc_buf.msg_regs()[0], 1337);
+    });
 
     sel4::debug_println!("TEST_PASS");
 
