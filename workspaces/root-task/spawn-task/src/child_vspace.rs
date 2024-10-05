@@ -28,6 +28,7 @@ pub(crate) fn create_child_vspace<'a>(
     caller_vspace: sel4::cap::VSpace,
     free_page_addr: usize,
     asid_pool: sel4::cap::AsidPool,
+    extra_frames: &[sel4::cap::Granule],
 ) -> ChildVSpaceInfo {
     let child_vspace = allocator.allocate_fixed_sized::<sel4::cap_type::VSpace>();
     asid_pool.asid_pool_assign(child_vspace).unwrap();
@@ -37,7 +38,7 @@ pub(crate) fn create_child_vspace<'a>(
     map_intermediate_translation_tables(
         allocator,
         child_vspace,
-        image_footprint.start..(image_footprint.end + GRANULE_SIZE),
+        image_footprint.start..(image_footprint.end + ((1 + extra_frames.len()) * GRANULE_SIZE)),
     );
 
     map_image(
@@ -49,7 +50,10 @@ pub(crate) fn create_child_vspace<'a>(
         free_page_addr,
     );
 
-    let ipc_buffer_addr = image_footprint.end;
+    let mut frame_beyond_image_index = 0..;
+
+    let ipc_buffer_addr =
+        image_footprint.end + frame_beyond_image_index.next().unwrap() * GRANULE_SIZE;
     let ipc_buffer_cap = allocator.allocate_fixed_sized::<sel4::cap_type::Granule>();
     ipc_buffer_cap
         .frame_map(
@@ -59,6 +63,18 @@ pub(crate) fn create_child_vspace<'a>(
             sel4::VmAttributes::default(),
         )
         .unwrap();
+
+    for frame in extra_frames {
+        let vaddr = image_footprint.end + frame_beyond_image_index.next().unwrap() * GRANULE_SIZE;
+        frame
+            .frame_map(
+                child_vspace,
+                vaddr,
+                sel4::CapRights::read_write(),
+                sel4::VmAttributes::default(),
+            )
+            .unwrap()
+    }
 
     ChildVSpaceInfo {
         child_vspace,
