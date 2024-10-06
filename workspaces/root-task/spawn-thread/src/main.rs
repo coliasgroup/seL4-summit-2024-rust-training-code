@@ -65,13 +65,17 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     secondary_thread_tcb
         .tcb_write_all_registers(true, &mut create_user_context(secondary_thread_fn))?;
 
-    sel4::debug_println!("In primary thread");
-
-    inter_thread_nfn.wait();
+    interact_with_secondary_thread(inter_thread_nfn);
 
     sel4::debug_println!("TEST_PASS");
 
     sel4::init_thread::suspend_self()
+}
+
+fn interact_with_secondary_thread(inter_thread_nfn: sel4::cap::Notification) {
+    sel4::debug_println!("In primary thread");
+
+    inter_thread_nfn.wait();
 }
 
 fn secondary_thread_main(inter_thread_nfn: sel4::cap::Notification) {
