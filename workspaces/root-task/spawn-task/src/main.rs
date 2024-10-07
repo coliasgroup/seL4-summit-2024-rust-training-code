@@ -65,18 +65,22 @@ fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     let mut child_cnode_slot = 1..;
 
     child_cnode
-        .relative_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
+        .absolute_cptr_from_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
         .mint(
-            &sel4::init_thread::slot::CNODE.cap().relative(child_tcb),
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .absolute_cptr(child_tcb),
             sel4::CapRights::all(),
             0,
         )
         .unwrap();
 
     child_cnode
-        .relative_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
+        .absolute_cptr_from_bits_with_depth(child_cnode_slot.next().unwrap(), child_cnode_size_bits)
         .mint(
-            &sel4::init_thread::slot::CNODE.cap().relative(inter_task_ep),
+            &sel4::init_thread::slot::CNODE
+                .cap()
+                .absolute_cptr(inter_task_ep),
             sel4::CapRights::write_only(),
             0,
         )
