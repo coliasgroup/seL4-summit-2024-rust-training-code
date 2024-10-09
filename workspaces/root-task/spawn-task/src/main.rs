@@ -31,6 +31,10 @@ struct PagePlaceholder(#[allow(dead_code)] [u8; GRANULE_SIZE]);
 
 static mut FILL_PAGE_RESERVATION: PagePlaceholder = PagePlaceholder([0; GRANULE_SIZE]);
 
+const SERIAL_DEVICE_MMIO_PADDR: usize = 0x0900_0000;
+
+const SERIAL_DEVICE_IRQ: usize = 33;
+
 #[root_task(heap_size = 1024 * 64)]
 fn main(bootinfo: &sel4::BootInfoPtr) -> sel4::Result<Never> {
     sel4::debug_println!("In root task");
