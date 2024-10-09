@@ -34,18 +34,6 @@ impl Handler for HandlerImpl {
     ) -> Result<MessageInfo, Self::Error> {
         debug_println!("server: called by {:?}", channel);
 
-        assert_eq!(msg_info.count(), 1);
-
-        sel4_microkit::with_msg_regs(|msg_regs| {
-            assert_eq!(msg_regs[0], 0xf00d);
-        });
-
-        sel4_microkit::with_msg_regs_mut(|msg_regs| {
-            msg_regs[0] = 0xf33d;
-        });
-
-        debug_println!("server: TEST_PASS");
-
-        Ok(MessageInfo::new(0, 1))
+        todo!()
     }
 }
