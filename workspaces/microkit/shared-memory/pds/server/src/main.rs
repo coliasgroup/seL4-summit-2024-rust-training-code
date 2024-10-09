@@ -21,7 +21,7 @@ use sel4_microkit::{
 const CLIENT: Channel = Channel::new(37);
 
 #[protection_domain]
-fn init() -> HandlerImpl {
+fn init() -> impl Handler {
     debug_println!("server: initializing");
 
     let region_a = unsafe {

@@ -12,7 +12,7 @@ use sel4_microkit::{debug_println, protection_domain, Channel, Handler, Infallib
 const SERVER: Channel = Channel::new(13);
 
 #[protection_domain]
-fn init() -> HandlerImpl {
+fn init() -> impl Handler {
     debug_println!("client: initializing");
     HandlerImpl
 }

@@ -10,7 +10,7 @@
 use sel4_microkit::{debug_println, protection_domain, Handler, Infallible};
 
 #[protection_domain]
-fn init() -> HandlerImpl {
+fn init() -> impl Handler {
     debug_println!("Hello, World!");
     HandlerImpl
 }
