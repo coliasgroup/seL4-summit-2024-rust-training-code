@@ -9,7 +9,7 @@
 resolver = "2"
 
 members = [
-    "hello",
+    "hello-world",
     "kernel-objects",
     "address-space",
     "serial-device",
