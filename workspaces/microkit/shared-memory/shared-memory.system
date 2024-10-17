@@ -11,13 +11,13 @@
 
     <protection_domain name="client" priority="100">
         <program_image path="microkit-shared-memory-client.elf" />
-        <map mr="region_a" vaddr="0x2_000_000" perms="r" cached="true" setvar_vaddr="region_a_vaddr" />
+        <map mr="region_a" vaddr="0x2_000_000" perms="rw" cached="true" setvar_vaddr="region_a_vaddr" />
         <map mr="region_b" vaddr="0x2_400_000" perms="rw" cached="true" setvar_vaddr="region_b_vaddr" />
     </protection_domain>
 
     <protection_domain name="server" priority="200" pp="true">
         <program_image path="microkit-shared-memory-server.elf" />
-        <map mr="region_a" vaddr="0x2_000_000" perms="rw" cached="true" setvar_vaddr="region_a_vaddr" />
+        <map mr="region_a" vaddr="0x2_000_000" perms="r" cached="true" setvar_vaddr="region_a_vaddr" />
         <map mr="region_b" vaddr="0x2_400_000" perms="r" cached="true" setvar_vaddr="region_b_vaddr" />
     </protection_domain>
 
