@@ -14,4 +14,4 @@ license = "BSD-2-Clause"
 [dependencies]
 microkit-shared-memory-common = { path = "../common" }
 sel4-microkit = { git = "https://github.com/seL4/rust-sel4" }
-sel4-externally-shared = { git = "https://github.com/seL4/rust-sel4" }
+sel4-externally-shared = { git = "https://github.com/seL4/rust-sel4", features = [ "unstable" ] }
