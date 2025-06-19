@@ -13,7 +13,7 @@ work_root := $(ROOT)
 
 oneshot_cmd := $(CMD)
 
-id := sel4-rust-training
+id := sel4-rust-tutorial
 image_tag := $(id)
 container_name := $(id)
 
